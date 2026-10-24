@@ -83,6 +83,11 @@ fields. `status` can be `todo`, `in_progress`, or `done`; `priority` can be
 `low`, `medium`, or `high`. New tasks default to `status: "todo"` and
 `priority: "low"`.
 
+On create and update requests, explicitly supplied values must match these
+lowercase options exactly. Unknown values, uppercase values, surrounding
+whitespace, blanks, and `null` return `400 Bad Request` with a validation
+message. Omitting these fields keeps the request defaults of `todo` and `low`.
+
 ## Database and seed data
 
 The application uses an in-memory H2 database at `jdbc:h2:mem:taskflow-api`. Four sample tasks are loaded each time the application starts, so data is reset on restart.

@@ -2,6 +2,7 @@ package sg.edu.ntu.taskflow_api.model;
 
 import jakarta.persistence.GeneratedValue;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -28,11 +29,15 @@ public class Task {
     @NotBlank(message = "Description is mandatory")
     private String description;
 
-    // Status of the task: "todo", "in_progress", or "done"
+    @NotBlank(message = "Status is mandatory")
+    @Pattern(regexp = "todo|in_progress|done",
+            message = "Status must be todo, in_progress, or done")
     @Column(name = "status")
     private String status = "todo";
 
-    // Priority of the task: "low", "medium", or "high"
+    @NotBlank(message = "Priority is mandatory")
+    @Pattern(regexp = "low|medium|high",
+            message = "Priority must be low, medium, or high")
     @Column(name = "priority")
     private String priority = "low";
 

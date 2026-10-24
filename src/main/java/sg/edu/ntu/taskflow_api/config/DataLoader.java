@@ -1,6 +1,6 @@
 package sg.edu.ntu.taskflow_api.config;
 import org.springframework.stereotype.Component;
-import org.springframework.beans.factory.annotation.Autowired;
+//import org.springframework.beans.factory.annotation.Autowired;
 import jakarta.annotation.PostConstruct;
 import sg.edu.ntu.taskflow_api.model.Task;
 import sg.edu.ntu.taskflow_api.repository.TaskRepository;

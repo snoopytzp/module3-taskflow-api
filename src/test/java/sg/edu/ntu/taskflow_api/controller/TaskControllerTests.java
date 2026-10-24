@@ -1,6 +1,7 @@
 package sg.edu.ntu.taskflow_api.controller;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.RETURNS_SELF;
 import static org.mockito.Mockito.mock;
@@ -17,8 +18,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.hamcrest.Matchers.containsString;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -144,6 +150,81 @@ class TaskControllerTests {
                 .andExpect(jsonPath("$.message").value(containsString("Priority must be low, medium, or high")));
 
         verifyNoInteractions(taskService);
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidTaskFields")
+    void createAndUpdateTask_WithInvalidField_ReturnBadRequest(
+            String field, String jsonValue, String expectedMessage) throws Exception {
+        String body = """
+                {"title":"Write tests","description":"Cover the task API","%s":%s}
+                """.formatted(field, jsonValue);
+
+        mockMvc.perform(post("/api/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(containsString(expectedMessage)));
+
+        mockMvc.perform(put("/api/tasks/5")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(containsString(expectedMessage)));
+
+        verifyNoInteractions(taskService);
+    }
+
+    static Stream<Arguments> invalidTaskFields() {
+        return Stream.of(
+                Arguments.of("status", "\"blocked\"", "Status must be todo, in_progress, or done"),
+                Arguments.of("status", "\"TODO\"", "Status must be todo, in_progress, or done"),
+                Arguments.of("status", "\" todo \"", "Status must be todo, in_progress, or done"),
+                Arguments.of("status", "\"\"", "Status is mandatory"),
+                Arguments.of("status", "\" \"", "Status is mandatory"),
+                Arguments.of("status", "null", "Status is mandatory"),
+                Arguments.of("priority", "\"urgent\"", "Priority must be low, medium, or high"),
+                Arguments.of("priority", "\"HIGH\"", "Priority must be low, medium, or high"),
+                Arguments.of("priority", "\" high \"", "Priority must be low, medium, or high"),
+                Arguments.of("priority", "\"\"", "Priority is mandatory"),
+                Arguments.of("priority", "\" \"", "Priority is mandatory"),
+                Arguments.of("priority", "null", "Priority is mandatory"));
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "todo,low", "todo,medium", "todo,high",
+            "in_progress,low", "in_progress,medium", "in_progress,high",
+            "done,low", "done,medium", "done,high"
+    })
+    void createAndUpdateTask_WithAllowedValues_AcceptTask(String taskStatus, String priority) throws Exception {
+        Task task = new Task("Write tests", "Cover the task API");
+        task.setStatus(taskStatus);
+        task.setPriority(priority);
+        when(taskService.createTask(any(Task.class))).thenReturn(task);
+        when(taskService.updateTask(eq(5L), any(Task.class))).thenReturn(task);
+        String body = """
+                {"title":"Write tests","description":"Cover the task API","status":"%s","priority":"%s"}
+                """.formatted(taskStatus, priority);
+
+        mockMvc.perform(post("/api/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value(taskStatus))
+                .andExpect(jsonPath("$.priority").value(priority));
+
+        mockMvc.perform(put("/api/tasks/5")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(taskStatus))
+                .andExpect(jsonPath("$.priority").value(priority));
+
+        verify(taskService).createTask(argThat(input ->
+                taskStatus.equals(input.getStatus()) && priority.equals(input.getPriority())));
+        verify(taskService).updateTask(eq(5L), argThat(input ->
+                taskStatus.equals(input.getStatus()) && priority.equals(input.getPriority())));
     }
 
     @Test
