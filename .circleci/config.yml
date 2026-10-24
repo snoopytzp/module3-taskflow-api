@@ -1,0 +1,145 @@
+version: 2.1
+orbs:
+  snyk: snyk/snyk@2.3.0
+
+jobs:
+  # ==========================================
+  # BUILD JOB - Compile and package
+  # ==========================================
+  build:
+    docker:
+      - image: cimg/openjdk:21.0
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - maven-deps-{{ checksum "pom.xml" }}
+            - maven-deps-
+      - run:
+          name: Install dependencies and build
+          command: |
+            echo "Building the application..."
+            mvn clean install -DskipTests
+      - save_cache:
+          paths:
+            - ~/.m2
+          key: maven-deps-{{ checksum "pom.xml" }}
+      - persist_to_workspace:
+          root: .
+          paths:
+            - target/*.jar
+
+  # ==========================================
+  # TEST JOB - Run automated tests
+  # ==========================================
+  test:
+    docker:
+      - image: cimg/openjdk:21.0
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - maven-deps-{{ checksum "pom.xml" }}
+            - maven-deps-
+      - run:
+          name: Run tests
+          command: |
+            echo "Running tests..."
+            mvn test
+      - store_test_results:
+          path: target/surefire-reports
+      - store_artifacts:
+          path: target/surefire-reports
+
+  # ==========================================
+  # SNYK_SCAN JOB - Snyk: scan Maven dependencies
+  # ==========================================
+  snyk_scan:
+    docker:
+      - image: cimg/openjdk:21.0
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - maven-deps-{{ checksum "pom.xml" }}
+            - maven-deps-
+      - snyk/scan:
+          fail-on-issues: false
+          severity-threshold: high
+          cli-version: 1.1308.1
+          monitor-on-build: false
+
+  # ==========================================
+  # SNYK_CODE JOB - Snyk Code: static analysis (SAST) of src/
+  # ==========================================
+  snyk_code:
+    docker:
+      - image: cimg/openjdk:21.0
+    steps:
+      - checkout
+      - snyk/scan:
+          command: code test
+          severity-threshold: high
+          cli-version: 1.1308.1
+          monitor-on-build: false
+          
+  # ==========================================
+  # PUBLISH JOB - Build and push Docker image
+  # ==========================================
+  publish:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - setup_remote_docker
+      - run:
+          name: Build Docker image
+          command: |
+            echo "Building Docker image..."
+            docker build -t $DOCKER_USERNAME/taskflow-api:latest .
+            docker build -t $DOCKER_USERNAME/taskflow-api:0.1.0 .
+      - run:
+          name: Push to Docker Hub
+          command: |
+            echo "Logging in to Docker Hub..."
+            echo $DOCKER_TOKEN | docker login -u $DOCKER_USERNAME --password-stdin
+            echo "Pushing image to Docker Hub..."
+            docker push $DOCKER_USERNAME/taskflow-api:latest
+            docker push $DOCKER_USERNAME/taskflow-api:0.1.0
+  # ==========================================
+  # DEPLOY JOB - Tell Railway to redeploy
+  # ==========================================
+  deploy:
+    docker:
+      - image: cimg/node:lts
+    steps:
+      - run:
+          name: Redeploy latest image on Railway
+          command: |
+            echo "Asking Railway to redeploy the latest image..."
+            npx --yes @railway/cli redeploy --service "$RAILWAY_SERVICE_ID" --yes
+            echo "Railway is now pulling $DOCKER_USERNAME/taskflow-api:latest from Docker Hub."
+# ==========================================
+# WORKFLOW - Run jobs in sequence
+# ==========================================
+workflows:
+  build_test_publish_deploy:
+    jobs:
+      - build
+      - snyk_scan
+      - snyk_code
+      - test:
+          requires:
+            - build
+      - publish:
+          context: docker-hub
+          requires:
+            - test
+            - snyk_scan
+            - snyk_code
+      - deploy:
+          requires:
+            - publish
+ 
