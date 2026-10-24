@@ -78,7 +78,10 @@ curl -X POST http://localhost:8080/api/tasks \
   -d '{"title":"Review pull request","description":"Check the API changes"}'
 ```
 
-Task responses contain `id`, `title`, `description`, and `completed` fields. New tasks start with `completed: false`.
+Task responses contain `id`, `title`, `description`, `status`, and `priority`
+fields. `status` can be `todo`, `in_progress`, or `done`; `priority` can be
+`low`, `medium`, or `high`. New tasks default to `status: "todo"` and
+`priority: "low"`.
 
 ## Database and seed data
 

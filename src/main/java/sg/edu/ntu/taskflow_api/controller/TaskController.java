@@ -29,7 +29,7 @@ public class TaskController {
         this.chatClient = chatClientBuilder
                 .defaultSystem("You summarise task lists for a busy project manager. "
                         + "Reply in plain English, at most three short sentences. "
-                        + "Say what is still pending and what is already done.")
+                        + "Say what remains in each status and note task priorities.")
                 .build();
     }
 
@@ -78,7 +78,8 @@ public class TaskController {
         }
 
         String taskList = tasks.stream()
-                .map(task -> "- [" + (  task.isCompleted() ? "DONE" : "PENDING") + "] "
+                .map(task -> "- [" + task.getStatus().toUpperCase() + "] ["
+                        + task.getPriority().toUpperCase() + "] "
                         + task.getTitle() + ": " + task.getDescription())
                 .collect(Collectors.joining("\n"));
 

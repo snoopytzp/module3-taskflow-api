@@ -58,7 +58,8 @@ class TaskControllerTests {
                 .andExpect(jsonPath("$[0].id").value(1))
                 .andExpect(jsonPath("$[0].title").value("Write tests"))
                 .andExpect(jsonPath("$[0].description").value("Cover the task API"))
-                .andExpect(jsonPath("$[0].completed").value(false));
+                .andExpect(jsonPath("$[0].status").value("todo"))
+                .andExpect(jsonPath("$[0].priority").value("low"));
     }
 
     @Test
@@ -70,7 +71,9 @@ class TaskControllerTests {
         mockMvc.perform(get("/api/tasks/7"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(7))
-                .andExpect(jsonPath("$.title").value("Write tests"));
+                .andExpect(jsonPath("$.title").value("Write tests"))
+                .andExpect(jsonPath("$.status").value("todo"))
+                .andExpect(jsonPath("$.priority").value("low"));
     }
 
     @Test
@@ -87,7 +90,8 @@ class TaskControllerTests {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(3))
                 .andExpect(jsonPath("$.title").value("Write tests"))
-                .andExpect(jsonPath("$.completed").value(false));
+                .andExpect(jsonPath("$.status").value("todo"))
+                .andExpect(jsonPath("$.priority").value("low"));
 
         verify(taskService).createTask(any(Task.class));
     }
@@ -110,20 +114,36 @@ class TaskControllerTests {
     void updateTask_WhenTaskExists_ReturnsUpdatedTask() throws Exception {
         Task updatedTask = new Task("Updated title", "Updated description");
         updatedTask.setId(5L);
-        updatedTask.setCompleted(true);
+        updatedTask.setStatus("in_progress");
+        updatedTask.setPriority("high");
         when(taskService.updateTask(eq(5L), any(Task.class))).thenReturn(updatedTask);
 
         mockMvc.perform(put("/api/tasks/5")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"title":"Updated title","description":"Updated description","completed":true}
+                                {"title":"Updated title","description":"Updated description","status":"in_progress","priority":"high"}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(5))
                 .andExpect(jsonPath("$.title").value("Updated title"))
-                .andExpect(jsonPath("$.completed").value(true));
+                .andExpect(jsonPath("$.status").value("in_progress"))
+                .andExpect(jsonPath("$.priority").value("high"));
 
         verify(taskService).updateTask(eq(5L), any(Task.class));
+    }
+
+    @Test
+    void createTask_WithInvalidStatusOrPriority_ReturnsBadRequest() throws Exception {
+        mockMvc.perform(post("/api/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"Write tests","description":"Cover the task API","status":"blocked","priority":"urgent"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(containsString("Status must be todo, in_progress, or done")))
+                .andExpect(jsonPath("$.message").value(containsString("Priority must be low, medium, or high")));
+
+        verifyNoInteractions(taskService);
     }
 
     @Test

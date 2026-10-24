@@ -28,12 +28,18 @@ public class Task {
     @NotBlank(message = "Description is mandatory")
     private String description;
 
-    @Column(name = "completed")
-    private boolean completed;
+    // Status of the task: "todo", "in_progress", or "done"
+    @Column(name = "status")
+    private String status = "todo";
+
+    // Priority of the task: "low", "medium", or "high"
+    @Column(name = "priority")
+    private String priority = "low";
 
     public Task(String title, String description) {
         this.title = title;
         this.description = description;
-        this.completed = false;
+        this.status = "todo";
+        this.priority = "low";
     }
 }

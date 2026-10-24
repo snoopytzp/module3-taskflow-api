@@ -132,7 +132,7 @@ jobs:
           command: |
             echo "Building Docker image..."
             docker build -t $DOCKER_USERNAME/taskflow-api:latest .
-            docker build -t $DOCKER_USERNAME/taskflow-api:0.1.0 .
+            docker build -t $DOCKER_USERNAME/taskflow-api:0.2.0 .
       - run:
           name: Push to Docker Hub
           command: |
@@ -140,7 +140,7 @@ jobs:
             echo $DOCKER_TOKEN | docker login -u $DOCKER_USERNAME --password-stdin
             echo "Pushing image to Docker Hub..."
             docker push $DOCKER_USERNAME/taskflow-api:latest
-            docker push $DOCKER_USERNAME/taskflow-api:0.1.0
+            docker push $DOCKER_USERNAME/taskflow-api:0.2.0
   # ==========================================
   # DEPLOY JOB - Tell Railway to redeploy
   # ==========================================
