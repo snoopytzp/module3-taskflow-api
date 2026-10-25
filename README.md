@@ -79,7 +79,7 @@ curl -X POST http://localhost:8080/api/tasks \
 ```
 
 Task responses contain `id`, `title`, `description`, `status`, and `priority`
-fields. `status` can be `todo`, `in_progress`, or `done`; `priority` can be
+fields. `status` can be `todo`, `in-progress`, or `done`; `priority` can be
 `low`, `medium`, or `high`. New tasks default to `status: "todo"` and
 `priority: "low"`.
 

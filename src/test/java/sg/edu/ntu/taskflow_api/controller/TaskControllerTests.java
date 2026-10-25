@@ -120,19 +120,19 @@ class TaskControllerTests {
     void updateTask_WhenTaskExists_ReturnsUpdatedTask() throws Exception {
         Task updatedTask = new Task("Updated title", "Updated description");
         updatedTask.setId(5L);
-        updatedTask.setStatus("in_progress");
+        updatedTask.setStatus("in-progress");
         updatedTask.setPriority("high");
         when(taskService.updateTask(eq(5L), any(Task.class))).thenReturn(updatedTask);
 
         mockMvc.perform(put("/api/tasks/5")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"title":"Updated title","description":"Updated description","status":"in_progress","priority":"high"}
+                                {"title":"Updated title","description":"Updated description","status":"in-progress","priority":"high"}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(5))
                 .andExpect(jsonPath("$.title").value("Updated title"))
-                .andExpect(jsonPath("$.status").value("in_progress"))
+                .andExpect(jsonPath("$.status").value("in-progress"))
                 .andExpect(jsonPath("$.priority").value("high"));
 
         verify(taskService).updateTask(eq(5L), any(Task.class));
@@ -146,7 +146,7 @@ class TaskControllerTests {
                                 {"title":"Write tests","description":"Cover the task API","status":"blocked","priority":"urgent"}
                                 """))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value(containsString("Status must be todo, in_progress, or done")))
+                .andExpect(jsonPath("$.message").value(containsString("Status must be todo, in-progress, or done")))
                 .andExpect(jsonPath("$.message").value(containsString("Priority must be low, medium, or high")));
 
         verifyNoInteractions(taskService);
@@ -177,9 +177,9 @@ class TaskControllerTests {
 
     static Stream<Arguments> invalidTaskFields() {
         return Stream.of(
-                Arguments.of("status", "\"blocked\"", "Status must be todo, in_progress, or done"),
-                Arguments.of("status", "\"TODO\"", "Status must be todo, in_progress, or done"),
-                Arguments.of("status", "\" todo \"", "Status must be todo, in_progress, or done"),
+                Arguments.of("status", "\"blocked\"", "Status must be todo, in-progress, or done"),
+                Arguments.of("status", "\"TODO\"", "Status must be todo, in-progress, or done"),
+                Arguments.of("status", "\" todo \"", "Status must be todo, in-progress, or done"),
                 Arguments.of("status", "\"\"", "Status is mandatory"),
                 Arguments.of("status", "\" \"", "Status is mandatory"),
                 Arguments.of("status", "null", "Status is mandatory"),
@@ -194,7 +194,7 @@ class TaskControllerTests {
     @ParameterizedTest
     @CsvSource({
             "todo,low", "todo,medium", "todo,high",
-            "in_progress,low", "in_progress,medium", "in_progress,high",
+            "in-progress,low", "in-progress,medium", "in-progress,high",
             "done,low", "done,medium", "done,high"
     })
     void createAndUpdateTask_WithAllowedValues_AcceptTask(String taskStatus, String priority) throws Exception {

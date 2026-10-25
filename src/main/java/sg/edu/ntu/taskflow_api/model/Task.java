@@ -30,8 +30,8 @@ public class Task {
     private String description;
 
     @NotBlank(message = "Status is mandatory")
-    @Pattern(regexp = "todo|in_progress|done",
-            message = "Status must be todo, in_progress, or done")
+    @Pattern(regexp = "todo|in-progress|done",
+            message = "Status must be todo, in-progress, or done")
     @Column(name = "status")
     private String status = "todo";
 

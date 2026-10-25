@@ -22,7 +22,7 @@ class TaskServiceImplTests {
     void updateTask_UpdatesStatusAndPriority() {
         Task existingTask = new Task("Existing title", "Existing description");
         Task taskUpdate = new Task("Updated title", "Updated description");
-        taskUpdate.setStatus("in_progress");
+        taskUpdate.setStatus("in-progress");
         taskUpdate.setPriority("high");
 
         when(taskRepository.findById(1L)).thenReturn(Optional.of(existingTask));
@@ -30,7 +30,7 @@ class TaskServiceImplTests {
 
         Task updatedTask = taskService.updateTask(1L, taskUpdate);
 
-        assertEquals("in_progress", updatedTask.getStatus());
+        assertEquals("in-progress", updatedTask.getStatus());
         assertEquals("high", updatedTask.getPriority());
         verify(taskRepository).save(existingTask);
     }
