@@ -30,6 +30,26 @@ The API starts at `http://localhost:8080`.
 
 On Windows, use `mvnw.cmd` instead of `./mvnw`.
 
+## Frontend CORS
+
+The API allows browser requests to `/api/**` from `http://localhost:4173`
+(Vite preview) and `http://localhost:5173` (Vite dev) by default.
+
+On Railway, set `CORS_ALLOWED_ORIGINS` to a comma-separated list of exact
+frontend origins, then redeploy the backend. For example:
+
+```text
+CORS_ALLOWED_ORIGINS=http://localhost:4173,https://your-frontend.example.com
+```
+
+This replaces the default allowlist. Use origins only (scheme, hostname, and
+port if needed), with no path or trailing slash. Requests support `GET`, `HEAD`,
+`POST`, `PUT`, `DELETE`, and `OPTIONS`, with `Content-Type`, `Authorization`,
+and `Accept` headers. Cross-origin cookies are not enabled.
+
+Vite's development proxy is not included in production builds; direct browser
+requests to Railway need their frontend origin in this backend allowlist.
+
 ## Build and test
 
 ```bash
