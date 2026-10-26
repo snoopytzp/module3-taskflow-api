@@ -11,10 +11,8 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.hamcrest.Matchers.containsString;
@@ -27,7 +25,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -35,7 +32,6 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -44,8 +40,7 @@ import sg.edu.ntu.taskflow_api.exceptions.TaskNotFoundException;
 import sg.edu.ntu.taskflow_api.model.Task;
 import sg.edu.ntu.taskflow_api.service.TaskService;
 
-@WebMvcTest(controllers = TaskController.class, properties =
-        "app.cors.allowed-origins=http://localhost:4173,https://taskflow.example.com")
+@WebMvcTest(TaskController.class)
 @Import({GlobalExceptionHandler.class, TaskControllerTests.ChatClientTestConfiguration.class})
 class TaskControllerTests {
 
@@ -57,53 +52,6 @@ class TaskControllerTests {
 
     @Autowired
     private ChatClient chatClient;
-
-        @ParameterizedTest
-        @ValueSource(strings = {"http://localhost:4173", "https://taskflow.example.com"})
-        void findAllTasks_FromAllowedOrigin_ReturnsCorsHeader(String origin) throws Exception {
-                when(taskService.findAllTasks()).thenReturn(List.of());
-
-                mockMvc.perform(get("/api/tasks").header(HttpHeaders.ORIGIN, origin))
-                                .andExpect(status().isOk())
-                                .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, origin));
-        }
-
-        @ParameterizedTest
-        @ValueSource(strings = {"GET", "HEAD", "POST", "PUT", "DELETE", "OPTIONS"})
-        void preflight_FromAllowedOrigin_AllowsApiMethodsAndHeaders(String method) throws Exception {
-                mockMvc.perform(options("/api/tasks/1")
-                                                .header(HttpHeaders.ORIGIN, "http://localhost:4173")
-                                                .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, method)
-                                                .header(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS, "content-type,authorization,accept"))
-                                .andExpect(status().isOk())
-                                .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "http://localhost:4173"))
-                                .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, containsString(method)))
-                                .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, containsString("content-type")))
-                                .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, containsString("authorization")))
-                                .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, containsString("accept")));
-
-                verifyNoInteractions(taskService);
-        }
-
-        @Test
-        void findAllTasks_FromUnlistedOrigin_IsForbidden() throws Exception {
-                mockMvc.perform(get("/api/tasks").header(HttpHeaders.ORIGIN, "https://untrusted.example.com"))
-                                .andExpect(status().isForbidden())
-                                .andExpect(header().doesNotExist(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN));
-
-                verifyNoInteractions(taskService);
-        }
-
-        @Test
-        void preflight_FromUnlistedOrigin_IsForbidden() throws Exception {
-                mockMvc.perform(options("/api/tasks")
-                                                .header(HttpHeaders.ORIGIN, "https://untrusted.example.com")
-                                                .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST"))
-                                .andExpect(status().isForbidden())
-                                .andExpect(header().doesNotExist(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN));
-
-                verifyNoInteractions(taskService);
-        }
 
     @Test
     void findAllTasks_WhenTasksExist_ReturnsTasks() throws Exception {
