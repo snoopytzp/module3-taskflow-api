@@ -1,117 +1,122 @@
-# Taskflow API
+# TaskFlow
 
-Taskflow API is a Spring Boot backend for managing tasks. It provides CRUD operations, a dedicated endpoint for marking tasks complete, and an AI-generated summary of the current task list.
+TaskFlow is a React task manager website backed by a separately deployed REST API.
+It demonstrates a full-stack application and a CI/CD deployment pipeline. Users
+can create, view, update, and delete tasks, each with a title, description,
+status, and priority.
 
-## Technology
+## Live application
 
-- Java 21
-- Spring Boot 4.1.1
-- Spring Web MVC
-- Spring Data JPA
-- H2 in-memory database
-- Spring AI with an OpenAI-compatible provider
-- Maven Wrapper
+- **Task manager website:** [simpletaskflowzp.netlify.app](https://simpletaskflowzp.netlify.app/)
+- **Backend API:** [devops-demo-production-707c.up.railway.app](https://devops-demo-production-707c.up.railway.app/)
+- **Task API endpoint:** [`/api/tasks`](https://devops-demo-production-707c.up.railway.app/api/tasks)
+- **Frontend hosting:** Netlify
+- **Backend hosting and PostgreSQL database:** Railway
 
-## Prerequisites
+The React frontend and backend API are deployed as separate services. This
+repository contains the backend API source; the React website is hosted
+independently on Netlify.
 
-- JDK 21 or later
-- An OpenAI-compatible API key for the task summary endpoint
+## Features
 
-## Run locally
+- Create tasks with a title, description, status, and priority.
+- View all tasks or a single task.
+- Amend an existing task.
+- Delete a task.
+- Mark a task as complete.
+- Filter and search tasks in the task manager website.
+- Generate an AI summary of the task list.
 
-From the project root:
+Task statuses are `todo`, `in-progress`, and `done`. Priorities are `low`,
+`medium`, and `high`. The API defaults new tasks to `todo` status and `low`
+priority.
+
+## CI/CD and deployment
+
+CircleCI runs the `build_test_publish_deploy` workflow:
+
+1. **Build** the backend API.
+2. **Test** it against PostgreSQL.
+3. **Scan** dependencies and source code with Snyk.
+4. **Publish** Docker images to Docker Hub after the tests and scans complete.
+5. **Deploy** the latest image to Railway.
+
+The pipeline uses Docker Hub image tags following
+`<major>.<new-feature>.<bug-fix>`, for example `0.2.0` and `0.2.1`, as well as
+the mutable `latest` tag. The versioned tag identifies a specific image, while
+`latest` points to the most recently published image.
+
+![CircleCI build, test, security scan, publish, and deploy pipeline](image/Mod4_CICD_pipeline.png)
+
+### Docker image versioning
+
+The Docker Hub repository contains versioned images as well as `latest`.
+
+![Docker Hub image tags and versions](image/Mod4_DockerVerCtrl.png)
+
+### Security scanning
+
+Snyk dependency and code scans are part of the CI/CD workflow. The following
+screenshot shows an initial scan and its reported findings; scan results can
+change as dependencies and source code change. Review findings, upgrade or
+otherwise remediate affected components, then run the pipeline again to verify
+the result. The dependency scan is configured not to fail the build on findings,
+so a successful pipeline does not by itself mean that all findings are fixed.
+
+![Initial Snyk security scan results](image/Mod4_Security_InitialDiagnose.png)
+
+## Task manager website
+
+The website presents tasks in columns by status and provides priority filters,
+search, and task creation, viewing, and deletion controls.
+
+![Task manager website](image/Mod4_TaskManager_FrontEnd.png)
+
+## REST API
+
+All task endpoints use the `/api/tasks` base path.
+
+| Method | Path | Description | Success |
+| --- | --- | --- | --- |
+| `GET` | `/api/tasks` | List tasks | `200 OK` |
+| `GET` | `/api/tasks/{id}` | Get a task | `200 OK` |
+| `POST` | `/api/tasks` | Create a task | `201 Created` |
+| `PUT` | `/api/tasks/{id}` | Update a task | `200 OK` |
+| `DELETE` | `/api/tasks/{id}` | Delete a task | `200 OK` |
+| `PUT` | `/api/tasks/{id}/complete` | Mark a task as complete | `200 OK` |
+| `GET` | `/api/tasks/summary` | Generate an AI task summary | `200 OK` |
+
+Example request:
 
 ```bash
-export SPRING_AI_OPENAI_API_KEY=your-api-key
-./mvnw spring-boot:run
-```
-
-The API starts at `http://localhost:8080`.
-
-On Windows, use `mvnw.cmd` instead of `./mvnw`.
-
-## Build and test
-
-```bash
-./mvnw clean test
-./mvnw package
-```
-
-Run the packaged application with:
-
-```bash
-java -jar target/taskflow-api-0.0.1-SNAPSHOT.jar
-```
-
-## API endpoints
-
-All task endpoints are under `/api/tasks`.
-
-| Method | Path | What it does |
-| --- | --- | --- |
-| `GET` | `/api/tasks` | Get all tasks |
-| `GET` | `/api/tasks/{id}` | Get one task by ID |
-| `POST` | `/api/tasks` | Create a new task |
-| `PUT` | `/api/tasks/{id}` | Update an existing task |
-| `DELETE` | `/api/tasks/{id}` | Delete a task |
-| `PUT` | `/api/tasks/{id}/complete` | Mark a task as complete |
-| `GET` | `/api/tasks/summary` | Generate an AI summary of all tasks |
-
-## Global exception handling
-
-The API uses a global `@RestControllerAdvice` to return consistent error
-responses. Every error response contains a `message` and a `timestamp`.
-
-| Exception | HTTP status | What it means |
-| --- | --- | --- |
-| `TaskNotFoundException` | `404 Not Found` | The requested task ID does not exist. |
-| `MethodArgumentNotValidException` | `400 Bad Request` | A request body failed validation, such as a missing title or description. |
-| Other unhandled exceptions | `500 Internal Server Error` | An unexpected server error occurred. |
-
-For a missing task, the `message` is `Could not find task with ID: {id}`.
-
-### Create a task
-
-```bash
-curl -X POST http://localhost:8080/api/tasks \
+curl -X POST https://devops-demo-production-707c.up.railway.app/api/tasks \
   -H 'Content-Type: application/json' \
-  -d '{"title":"Review pull request","description":"Check the API changes"}'
+  -d '{
+    "title": "Review pull request",
+    "description": "Check the API changes",
+    "status": "todo",
+    "priority": "medium"
+  }'
 ```
 
-Task responses contain `id`, `title`, `description`, `status`, and `priority`
-fields. `status` can be `todo`, `in-progress`, or `done`; `priority` can be
-`low`, `medium`, or `high`. New tasks default to `status: "todo"` and
-`priority: "low"`.
+Task responses contain `id`, `title`, `description`, `status`, and `priority`.
+Titles and descriptions are required. Status and priority values must use the
+lowercase options shown above.
 
-On create and update requests, explicitly supplied values must match these
-lowercase options exactly. Unknown values, uppercase values, surrounding
-whitespace, blanks, and `null` return `400 Bad Request` with a validation
-message. Omitting these fields keeps the request defaults of `todo` and `low`.
+## Architecture and configuration
 
-## Database and seed data
+- **Frontend:** React task manager website, deployed on Netlify.
+- **Backend:** REST API deployed on Railway; the frontend calls this service
+  for task operations.
+- **Database:** PostgreSQL provisioned by Railway and used by the backend.
+- **Delivery pipeline:** CircleCI builds and tests the API, runs Snyk scans,
+  publishes Docker images, and triggers the Railway deployment.
 
-The application uses an in-memory H2 database at `jdbc:h2:mem:taskflow-api`. Four sample tasks are loaded each time the application starts, so data is reset on restart.
+The React frontend source is maintained separately from this API repository.
+Frontend-specific local development instructions belong with that source. For
+the deployed app, use the website and API links above.
 
-The H2 console is available at `http://localhost:8080/h2` with:
-
-- JDBC URL: `jdbc:h2:mem:taskflow-api`
-- User: `sa`
-- Password: empty
-
-## AI summary configuration
-
-The summary endpoint uses Spring AI with the configured OpenAI-compatible base URL and model. Set `SPRING_AI_OPENAI_API_KEY` in the environment before starting the application.
-
-Do not commit API keys to source control. The existing `application.properties` contains a hard-coded key; revoke or rotate it and replace it with an environment-based value before deploying or sharing this project.
-
-## Project layout
-
-```text
-src/main/java/sg/edu/ntu/taskflow_api/
-├── config/       # Startup seed data
-├── controller/   # HTTP endpoints
-├── exceptions/   # Task-specific exceptions
-├── model/        # JPA entities
-├── repository/   # Spring Data repositories
-└── service/      # Task business logic
-```
+The backend uses environment-based database credentials and an API key for the
+AI summary integration. Keep deployment credentials and API keys in environment
+variables or deployment secrets; never commit real credentials to source
+control.
